@@ -12,7 +12,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 )
 
 func readCSV(fileName string, ch chan string) (int, dataframe.DataFrame) {
@@ -33,7 +32,7 @@ func generateRange(min int, max int) []int {
 }
 
 func processSplitting(fileName string, option string, numOf int, folder bool, progress *widget.ProgressBar, ch chan string) {
-	fmt.Println(fileName, option, numOf, folder)
+
 	if option == "" {
 		ch <- "Please select the chunk type"
 		return
@@ -72,7 +71,6 @@ func processSplitting(fileName string, option string, numOf int, folder bool, pr
 		totalChunks = float64(numOf)
 	}
 
-	fmt.Println(totalChunks, chunkRow)
 	start := 0
 	end := chunkRow
 	for i := 1.0; i <= totalChunks; i += 1.0 {
@@ -130,11 +128,13 @@ func main() {
 	a := app.New()
 	w := a.NewWindow("Split CSV")
 	w1 := a.NewWindow("Result")
+	w1.SetMaster()
 	w.CenterOnScreen()
 	w.Resize(fyne.Size{Width: 400, Height: 200})
 	entryOption := ""
 	isFolder := false
 	ch := make(chan string)
+	waitResult := false
 	CSVFileName := ""
 
 	fileName := widget.NewLabel("Detecting...")
@@ -142,7 +142,7 @@ func main() {
 	go func() {
 		result := <-ch
 		if strings.Contains(result, "Error") {
-			time.Sleep(time.Millisecond * 1000)
+			waitResult = true
 			w.Close()
 			w1.SetContent(widget.NewLabel(result))
 			w1.CenterOnScreen()
@@ -186,7 +186,11 @@ func main() {
 		SubmitText: "Split Now",
 		CancelText: "Close",
 	}
-
 	w.SetContent(container.NewVBox(form, progress))
-	w.ShowAndRun()
+	if waitResult {
+		w1.Show()
+	} else {
+		w.Show()
+	}
+	a.Run()
 }
