@@ -24,6 +24,14 @@ func readCSV(fileName string, ch chan string) (int, dataframe.DataFrame) {
 	return df.Nrow(), df
 }
 
+func generateRange(min int, max int) []int {
+	var seq []int
+	for i := min; i < max; i++ {
+		seq = append(seq, i)
+	}
+	return seq
+}
+
 func processSplitting(fileName string, option string, numOf int, folder bool, progress *widget.ProgressBar, ch chan string) {
 	fmt.Println(fileName, option, numOf, folder)
 	if option == "" {
@@ -34,7 +42,7 @@ func processSplitting(fileName string, option string, numOf int, folder bool, pr
 		ch <- "Please enter " + option + " in Enter Value field"
 		return
 	}
-	numOfRow, _ := readCSV(fileName, ch)
+	numOfRow, df := readCSV(fileName, ch)
 	totalChunks := 1.0
 	chunkRow := 0
 
@@ -65,10 +73,41 @@ func processSplitting(fileName string, option string, numOf int, folder bool, pr
 	}
 
 	fmt.Println(totalChunks, chunkRow)
+	start := 0
+	end := chunkRow
 	for i := 1.0; i <= totalChunks; i += 1.0 {
+		newDF := df.Subset(generateRange(start, end))
+		fileChunkName := ""
+		if folder {
+			folderChunkName := fmt.Sprintf("Chunk%d", int(i))
+			err := os.Mkdir(".\\"+folderChunkName, 0755)
+			if err != nil {
+				ch <- "Error creating folder"
+			}
+			fileChunkName = ".\\" + folderChunkName + "\\" + strings.ReplaceAll(fileName, ".csv", "") + "_" + folderChunkName + ".csv"
+		} else {
+			fileChunkName = strings.ReplaceAll(fileName, ".csv", "") + "_" + fmt.Sprintf("Chunk%d.csv", int(i))
+		}
+		f, err := os.Create(fileChunkName)
+		if err != nil {
+			ch <- "Error creating chunks"
+			return
+		}
+
+		err = newDF.WriteCSV(f)
+		if err != nil {
+			ch <- "Error creating chunks"
+			return
+		}
 		progress.SetValue(i / totalChunks)
+		start = end
+		if (end + chunkRow) < numOfRow {
+			end += chunkRow
+		} else {
+			end = numOfRow
+		}
 	}
-	ch <- fmt.Sprintf("Success!\nRows: %d\nTotal chunks: %d", numOfRow, 0)
+	ch <- fmt.Sprintf("Success!\nRows: %d\nTotal chunks: %d", numOfRow, int(totalChunks))
 }
 
 func setFileName(fileWidget *widget.Label, ch chan string) {
