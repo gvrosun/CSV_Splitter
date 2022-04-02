@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/go-gota/gota/dataframe"
 	"io/ioutil"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -33,11 +34,39 @@ func processSplitting(fileName string, option string, numOf int, folder bool, pr
 		ch <- "Please enter " + option + " in Enter Value field"
 		return
 	}
-	numOfRow, df := readCSV(fileName, ch)
-	fmt.Println(numOfRow, df)
-	for i := 0.0; i <= 1.0; i += 0.1 {
-		time.Sleep(time.Millisecond * 250)
-		progress.SetValue(i)
+	numOfRow, _ := readCSV(fileName, ch)
+	totalChunks := 1.0
+	chunkRow := 0
+
+	if option == "Number of Rows" {
+		if numOfRow < numOf {
+			ch <- "Given Number of Rows exceeds csv rows"
+			return
+		}
+		remainder := numOfRow % numOf
+		chunkRow = numOf
+		totalChunks = math.Floor(float64(numOfRow / numOf))
+		if remainder != 0 {
+			totalChunks += 1
+		}
+	}
+	if option == "Number of Chunks" {
+		remainder := numOfRow % numOf
+		chunkRow = numOfRow / numOf
+		totalRows := math.Floor(float64(chunkRow))
+		if remainder != 0 {
+			chunkRow += 1
+		}
+		if totalRows == 0 {
+			ch <- "Too large number of chunks"
+			return
+		}
+		totalChunks = float64(numOf)
+	}
+
+	fmt.Println(totalChunks, chunkRow)
+	for i := 1.0; i <= totalChunks; i += 1.0 {
+		progress.SetValue(i / totalChunks)
 	}
 	ch <- fmt.Sprintf("Success!\nRows: %d\nTotal chunks: %d", numOfRow, 0)
 }
@@ -56,7 +85,6 @@ func setFileName(fileWidget *widget.Label, ch chan string) {
 	}
 	fileWidget.Text = "Not Found"
 	ch <- "Error: CSV file not found"
-	//*fileName = "Not Found"
 }
 
 func main() {
