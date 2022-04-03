@@ -5,6 +5,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/go-gota/gota/dataframe"
 	"io/ioutil"
@@ -127,7 +128,10 @@ func setFileName(fileWidget *widget.Label, ch chan string) {
 func main() {
 	a := app.New()
 	w := a.NewWindow("Split CSV")
+	r, _ := fyne.LoadResourceFromPath("./Icon.png")
+	w.SetIcon(r)
 	w1 := a.NewWindow("Result")
+	w1.SetIcon(theme.InfoIcon())
 	w1.SetMaster()
 	w.CenterOnScreen()
 	w.Resize(fyne.Size{Width: 400, Height: 200})
